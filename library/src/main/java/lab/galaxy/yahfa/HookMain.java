@@ -10,6 +10,9 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import lab.galaxy.yahfa.wrapper.HookErrorException;
+import lab.galaxy.yahfa.wrapper.HookWrapper;
+
 /**
  * Created by liuruikai756 on 28/03/2017.
  */
@@ -22,6 +25,10 @@ public class HookMain {
         System.loadLibrary("yahfa");
         init(android.os.Build.VERSION.SDK_INT);
         HookMethodResolver.init();
+    }
+
+    public static void addHookClass(Class... hookWrapperClass) throws HookErrorException {
+        HookWrapper.addHookClass(hookWrapperClass);
     }
 
     public static void doHookDefault(ClassLoader patchClassLoader, ClassLoader originClassLoader) {
@@ -171,7 +178,7 @@ public class HookMain {
         }
     }
 
-    private static native boolean backupAndHookNative(Object target, Method hook, Method backup);
+    public static native boolean backupAndHookNative(Object target, Method hook, Method backup);
 
     public static native void ensureMethodCached(Method hook, Method backup);
 

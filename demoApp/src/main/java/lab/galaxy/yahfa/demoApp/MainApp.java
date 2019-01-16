@@ -5,6 +5,7 @@ import android.content.Context;
 
 import dalvik.system.DexClassLoader;
 import lab.galaxy.yahfa.HookMain;
+import lab.galaxy.yahfa.wrapper.HookWrapper;
 
 /**
  * Created by liuruikai756 on 30/03/2017.
@@ -24,6 +25,8 @@ public class MainApp extends Application {
             DexClassLoader dexClassLoader = new DexClassLoader("/sdcard/demoPlugin-debug.apk",
                     getCodeCacheDir().getAbsolutePath(), null, classLoader);
             HookMain.doHookDefault(dexClassLoader, classLoader);
+
+            HookMain.addHookClass(ActivityHooker.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
