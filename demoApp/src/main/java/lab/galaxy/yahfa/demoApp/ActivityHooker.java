@@ -27,13 +27,13 @@ public class ActivityHooker {
     }
 
     @HookMethod("onPause")
-    public static void onPause(MainActivity thiz) {
+    public static void onPause(Activity thiz) {
         Log.w("ActivityHooker", "onPause");
         onPauseBackup(thiz);
     }
 
     @HookMethodBackup("onPause")
-    public static void onPauseBackup(MainActivity thiz) {
+    public static void onPauseBackup(Activity thiz) {
         Log.w("ActivityHooker", "should not be here!");
     }
 

@@ -1,5 +1,7 @@
 package lab.galaxy.yahfa.wrapper;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -25,7 +27,7 @@ public class HookWrapper {
         Class targetHookClass = getTargetHookClass(clazz);
         if (targetHookClass == null)
             throw new HookErrorException("error hook wrapper class :" + clazz.getName());
-        Map<Method,HookEntity> hookEntityMap = getHookMethods(targetHookClass, clazz);
+        Map<Member,HookEntity> hookEntityMap = getHookMethods(targetHookClass, clazz);
         for (HookEntity entity:hookEntityMap.values()) {
             if (entity.target != null && entity.hook != null) {
                 if (entity.backup != null) {
@@ -38,8 +40,8 @@ public class HookWrapper {
         }
     }
 
-    private static Map<Method, HookEntity> getHookMethods(Class targetHookClass, Class<?> hookWrapperClass) throws HookErrorException {
-        Map<Method,HookEntity> hookEntityMap = new HashMap<>();
+    private static Map<Member, HookEntity> getHookMethods(Class targetHookClass, Class<?> hookWrapperClass) throws HookErrorException {
+        Map<Member,HookEntity> hookEntityMap = new HashMap<>();
         Method[] methods = hookWrapperClass.getDeclaredMethods();
         if (methods == null && methods.length == 0)
             throw new HookErrorException("error hook wrapper class :" + targetHookClass.getName());
@@ -47,13 +49,17 @@ public class HookWrapper {
             HookMethod hookMethodAnno = method.getAnnotation(HookMethod.class);
             HookMethodBackup hookMethodBackupAnno = method.getAnnotation(HookMethodBackup.class);
             String methodName;
-            Method foundMethod;
+            Member foundMethod;
             Class[] pars;
             if (hookMethodAnno != null) {
                 methodName = hookMethodAnno.value();
                 pars = parseMethodPars(method);
                 try {
-                    foundMethod = targetHookClass.getDeclaredMethod(methodName, pars);
+                    if (methodName.equals("<init>")) {
+                        foundMethod = targetHookClass.getConstructor(pars);
+                    } else {
+                        foundMethod = targetHookClass.getDeclaredMethod(methodName, pars);
+                    }
                 } catch (NoSuchMethodException e) {
                     throw new HookErrorException("can not find target method: " + methodName, e);
                 }
@@ -68,7 +74,11 @@ public class HookWrapper {
                 methodName = hookMethodBackupAnno.value();
                 pars = parseMethodPars(method);
                 try {
-                    foundMethod = targetHookClass.getDeclaredMethod(methodName, pars);
+                    if (methodName.equals("<init>")) {
+                        foundMethod = targetHookClass.getConstructor(pars);
+                    } else {
+                        foundMethod = targetHookClass.getDeclaredMethod(methodName, pars);
+                    }
                 } catch (NoSuchMethodException e) {
                     throw new HookErrorException("can not find target method: " + methodName, e);
                 }
@@ -127,11 +137,17 @@ public class HookWrapper {
         }
     }
 
-    public static void checkSignature(Method origin, Method fake, Class[] originPars) throws HookErrorException {
+    public static void checkSignature(Member origin, Method fake, Class[] originPars) throws HookErrorException {
         if (!Modifier.isStatic(fake.getModifiers()))
             throw new HookErrorException("hook method must static! - " + fake.getName());
-        if (origin.getReturnType() != fake.getReturnType() && !origin.getReturnType().isAssignableFrom(origin.getReturnType()))
-            throw new HookErrorException("error return type! - " + fake.getName());
+        if (origin instanceof Constructor) {
+            if (!fake.getReturnType().equals(Void.TYPE))
+                throw new HookErrorException("error return type! - " + fake.getName());
+        } else if (origin instanceof Method) {
+            Class originRet = ((Method)origin).getReturnType();
+            if (originRet != fake.getReturnType() && !originRet.isAssignableFrom(originRet))
+                throw new HookErrorException("error return type! - " + fake.getName());
+        }
         Class[] fakePars = fake.getParameterTypes();
         if (fakePars == null)
             fakePars = new Class[0];
@@ -160,12 +176,17 @@ public class HookWrapper {
 
     public static class HookEntity {
 
-        public Method target;
+        public Member target;
         public Method hook;
         public Method backup;
 
-        public HookEntity(Method target) {
+        public HookEntity(Member target) {
             this.target = target;
+        }
+
+
+        public boolean isCtor() {
+            return target instanceof Constructor;
         }
     }
 
